@@ -50,7 +50,7 @@ async function setSlackStatus(statusText, statusEmoji) {
             profile: {
                 status_text: statusText,
                 status_emoji: statusEmoji,
-                status_expiration: Math.floor(Date.now()/1000) + 120
+                status_expiration: Math.floor(Date.now()/1000) + 3600
             }
         })
     });
