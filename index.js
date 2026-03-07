@@ -21,6 +21,20 @@ async function getCurrentlyPlayingTrack() {
     }
 }
 
+async function getTrackInfo(mbid) {
+    if (!mbid) return null
+    const url = `http://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${process.env.LASTFM_API_KEY}&mbid=${mbid}&format=json`;
+    const res = await fetch(url);
+    if (!res.ok) {
+        console.log("here??")
+        throw new Error('failed to fetch track info');
+    }
+    const data = await res.json();
+    console.log(data)
+    const track = data.track
+    return track;
+}
+
 async function getSlackStatus() {
     const url = 'https://slack.com/api/users.profile.get';
     const res = await fetch(url, {
@@ -38,7 +52,7 @@ async function getSlackStatus() {
     }
 }
 
-async function setSlackStatus(statusText, statusEmoji) {
+async function setSlackStatus(statusText, statusEmoji, statusExpiration) {
     const url = 'https://slack.com/api/users.profile.set';
     const res = await fetch(url, {
         method: 'POST',
@@ -50,7 +64,7 @@ async function setSlackStatus(statusText, statusEmoji) {
             profile: {
                 status_text: statusText,
                 status_emoji: statusEmoji,
-                status_expiration: Math.floor(Date.now()/1000) + 600
+                status_expiration: statusExpiration
             }
         })
     });
@@ -81,7 +95,11 @@ async function main() {
             lastStatus = { text: '', emoji: '' };
             return;
         }
-        await setSlackStatus(statusText, statusEmoji);
+        console.log(track.mbid)
+        const trackInfo = await getTrackInfo(track.mbid)
+        const trackDuration = trackInfo ? Number(trackInfo.duration) : 600000
+        const statusExpiration = Math.floor((Date.now() + trackDuration)/1000) + 10
+        await setSlackStatus(statusText, statusEmoji, statusExpiration);
         notifier.notify({
             title: 'status updated',
             message: statusText,
